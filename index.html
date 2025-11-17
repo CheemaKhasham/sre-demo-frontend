@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SRE Demo Shop</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 { color: #333; }
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            cursor: pointer;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            margin-right: 10px;
+        }
+        button:hover { background: #0056b3; }
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .metrics {
+            margin-top: 10px;
+            color: #666;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛒 SRE Demo E-Commerce</h1>
+        <p>Place orders to test the microservices architecture</p>
+        <button onclick="placeOrder()">Place Single Order</button>
+        <button onclick="loadTest()">Start Load Test (10 concurrent)</button>
+        <div id="result">Ready to process orders...</div>
+    </div>
+    <script>
+        const API_URL = 'http://api-gateway-service:8080';
+        
+        async function placeOrder() {
+            const result = document.getElementById('result');
+            result.innerHTML = 'Processing order...';
+            const start = Date.now();
+            
+            try {
+                const response = await fetch(`${API_URL}/api/orders`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        item: 'widget',
+                        quantity: Math.floor(Math.random() * 5) + 1,
+                        price: 99.99
+                    })
+                });
+                
+                const data = await response.json();
+                const duration = Date.now() - start;
+                
+                result.innerHTML = `✅ <strong>Order Completed!</strong>\n` +
+                    `<div class="metrics">Response Time: ${duration}ms | Status: ${response.status}</div>\n` +
+                    `${JSON.stringify(data, null, 2)}`;
+            } catch(e) {
+                const duration = Date.now() - start;
+                result.innerHTML = `❌ <strong>Order Failed!</strong>\n` +
+                    `<div class="metrics">Response Time: ${duration}ms</div>\n` +
+                    `Error: ${e.message}`;
+            }
+        }
+        
+        let loadTestRunning = false;
+        async function loadTest() {
+            if (loadTestRunning) return;
+            loadTestRunning = true;
+            
+            const result = document.getElementById('result');
+            result.innerHTML = '🔥 Starting load test with 10 concurrent requests...';
+            
+            const promises = [];
+            for (let i = 0; i < 10; i++) {
+                promises.push(
+                    fetch(`${API_URL}/api/orders`, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({item: 'widget', quantity: 1, price: 99.99})
+                    }).then(r => r.json())
+                );
+            }
+            
+            try {
+                const results = await Promise.all(promises);
+                result.innerHTML = `✅ Load test complete! Processed ${results.length} orders successfully.`;
+            } catch(e) {
+                result.innerHTML = `⚠️ Load test completed with errors: ${e.message}`;
+            }
+            
+            loadTestRunning = false;
+        }
+    </script>
+</body>
+</html>
