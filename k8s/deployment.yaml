@@ -14,9 +14,21 @@ spec:
     spec:
       containers:
       - name: frontend
-        image: khasham1/sre-demo-frontend:latest
+        image: <YOUR_REGISTRY>/sre-demo-frontend:latest
         ports:
         - containerPort: 80
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 5
         resources:
           requests:
             memory: "128Mi"
